@@ -1,4 +1,4 @@
-from src.constants.EndpointConstants import *
+from src.constants.Constants import *
 from src.model.InformationTransmissionLine import InformationTransmissionLine
 from src.model.endpoint.Endpoint import Endpoint
 from src.utils.TimeHelper import TimeHelper

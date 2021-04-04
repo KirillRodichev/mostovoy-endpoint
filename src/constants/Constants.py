@@ -58,3 +58,21 @@ CHARACTERISTICS = {
     ANGULAR_VELOCITY: ANGULAR_VELOCITY,
     ANGULAR_ACCELERATION: ANGULAR_ACCELERATION,
 }
+
+# RESPONSE
+
+SUCCESS = 'success'
+ERROR = 'error'
+DATA = 'data'
+
+# ERROR MESSAGES
+
+INCOMPATIBLE_COMMAND_TYPE = 'Error: this command type is incompatible with used transfer data format'
+LINE_IS_BUSY = 'Error: line is busy'
+ENDPOINT_NOT_FUNCTIONING = 'Error: endpoint is not functioning'
+
+# TIME
+# in messages
+
+SESSION = 20000
+PORTION = 1000

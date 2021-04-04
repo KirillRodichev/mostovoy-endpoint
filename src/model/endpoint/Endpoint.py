@@ -1,4 +1,4 @@
-from src.constants.EndpointConstants import *
+from src.constants.Constants import *
 from src.utils.TimeHelper import TimeHelper
 
 INIT_STATE = {
@@ -34,11 +34,20 @@ class Endpoint:
 
     # returns current endpoint state
     def get_response(self):
-        if self.state[self.line][IS_BUSY] or self.state[self.line][IS_FROZEN] or not self.state[self.line][IS_FUNCTIONING]:
-            TimeHelper.pause()
-            return self.state[self.line]
+        if self.state[self.line][IS_BUSY] \
+                or self.state[self.line][IS_FROZEN] \
+                or not self.state[self.line][IS_FUNCTIONING]:
+            return {
+                SUCCESS: True,
+                DATA: self.state[self.line],
+                ERROR: '',
+            }
         else:
-            return self.state[self.line]
+            return {
+                SUCCESS: False,
+                DATA: None,
+                ERROR: ENDPOINT_NOT_FUNCTIONING
+            }
 
     def accept_data(self, data_array):
         self.characteristics = {

@@ -1,6 +1,6 @@
 import time
 
-from src.constants.EndpointConstants import *
+from src.constants.Constants import *
 from src.model.Controller import Controller
 from src.model.InformationTransmissionLine import InformationTransmissionLine
 from src.model.endpoint.Endpoint import Endpoint

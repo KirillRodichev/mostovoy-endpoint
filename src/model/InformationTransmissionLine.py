@@ -1,8 +1,17 @@
 import time
 
-from src.constants.EndpointConstants import *
+from src.constants.Constants import *
+from src.model.Counter import Counter
 from src.model.endpoint.Endpoint import Endpoint
 from src.utils.TimeHelper import TimeHelper
+
+
+def set_resp(success=False, data=None, error=''):
+    return {
+        SUCCESS: success,
+        DATA: data,
+        ERROR: error,
+    }
 
 
 class InformationTransmissionLine:
@@ -19,27 +28,25 @@ class InformationTransmissionLine:
     # command, [data, data ... data] (t1)=> response (t2)=>
     # returns None on error or current endpoint state
     def transfer_format1(self, command, data_array, endpoint):
+        Counter.add_msg()
         if not self.isBusy:
             self.set_busy_line(True, endpoint)
 
             if command == COMMANDS[SEND_DATA]:
+                Counter.add_word_delay()  # + 20 mcs - command word
                 endpoint.accept_data(data_array)
-                transfer_start = time.perf_counter()
-                TimeHelper.pause()
+                Counter.add_data_trans_delay()  # + 240 mcs - 12 data words
                 response = endpoint.get_response()
             else:
-                transfer_start = time.perf_counter()
-                response = None
+                response = set_resp(False, None, INCOMPATIBLE_COMMAND_TYPE)
 
-            transfer_end = time.perf_counter()
-
-            if TimeHelper.is_transaction_expired(transfer_end - transfer_start) or response is None:
-                response = None
+            Counter.add_word_delay()  # + 20 mcs - response word
+            Counter.add_endpoint_resp_delay()  # + 12 mcs
 
             self.set_busy_line(False, endpoint)
             return response
         else:
-            return None
+            return set_resp(False, None, LINE_IS_BUSY)
 
     # command (t1)=> response, [data, data ... data] (t2)=>
     def transfer_format2(self, command, endpoint):
