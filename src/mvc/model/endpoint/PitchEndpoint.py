@@ -1,7 +1,7 @@
-from src.model.endpoint.Endpoint import Endpoint
+from src.mvc.model.endpoint.Endpoint import Endpoint
 
 
-class RollEndpoint(Endpoint):
+class PitchEndpoint(Endpoint):
 
     def __init__(self, angle, angular_velocity, angular_acceleration, transmitting_line, channel):
         super().__init__(transmitting_line, channel)

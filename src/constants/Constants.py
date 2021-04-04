@@ -1,4 +1,6 @@
 # lines
+LINE = 'line'
+
 LINE_A = 'LINE_A'
 LINE_B = 'LINE_B'
 
@@ -34,19 +36,24 @@ COMMANDS = {
     RELEASE: RELEASE,
 }
 
-# endpoints states
+# endpoints
+
+ENDPOINTS_COUNT = 18
+
 IS_BUSY = 'IS_BUSY'
 IS_GENERATING = 'IS_GENERATING'
 IS_FROZEN = 'IS_FROZEN'
-IS_FUNCTIONING = 'IS_FUNCTIONING'
 IS_SERVICE_NEEDED = 'IS_SERVICE_NEEDED'
+IS_BREAKDOWN = 'IS_BREAKDOWN'
+IS_FAILURE = 'IS_FAILURE'
 
 STATES = {
     IS_BUSY: IS_BUSY,
     IS_GENERATING: IS_GENERATING,
     IS_FROZEN: IS_FROZEN,
-    IS_FUNCTIONING: IS_FUNCTIONING,
     IS_SERVICE_NEEDED: IS_SERVICE_NEEDED,
+    IS_BREAKDOWN: IS_BREAKDOWN,
+    IS_FAILURE: IS_FAILURE,
 }
 
 ANGLE = 'ANGLE'
@@ -70,6 +77,8 @@ DATA = 'data'
 INCOMPATIBLE_COMMAND_TYPE = 'Error: this command type is incompatible with used transfer data format'
 LINE_IS_BUSY = 'Error: line is busy'
 ENDPOINT_NOT_FUNCTIONING = 'Error: endpoint is not functioning'
+WRONG_NUMBER_OF_END_POINTS = 'Error: wrong number of endpoint: cannot divide by 3 without a remainder'
+NO_RESPONSE = 'Error: no response from endpoint'
 
 # TIME
 # in messages

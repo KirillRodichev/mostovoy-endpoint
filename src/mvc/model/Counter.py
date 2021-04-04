@@ -20,7 +20,7 @@ class Counter:
         Counter.time += ENDPOINT_RESP_DELAY
 
     @staticmethod
-    def add_end_of_data_trans_delay():
+    def add_end_of_trans_delay():
         Counter.time += END_OF_DATA_TRANS_DELAY
 
     @staticmethod
