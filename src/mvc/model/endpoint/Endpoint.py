@@ -49,11 +49,15 @@ class Endpoint:
             Counter.add_word_delay()  # + 20 mcs - response word
             return self.state
         else:
+            if self.state[IS_BREAKDOWN] is True:
+                self.state[IS_BREAKDOWN] = False
             return None
 
     def accept_data(self, data_array):
-        Counter.add_data_trans_delay()  # + 240 mcs - 12 data messages
-        # TODO: process data array if needed
+        if self.is_functioning():
+            Counter.add_word_delay()  # + 20 mcs - accept data command word
+            Counter.add_data_trans_delay()  # + 240 mcs - 12 data messages
+            # TODO: process data array if needed
 
     def block(self):
         if self.is_functioning():
@@ -77,10 +81,5 @@ class Endpoint:
         else:
             self.state[LINE] = LINE_A
 
-    def send_data(self):
-        Counter.add_word_delay()  # + 20 mcs - command word
-
     def is_functioning(self):
-        return not (self.state[IS_BREAKDOWN]
-                    or self.state[IS_FAILURE]
-                    or self.state[IS_GENERATING][self.state[LINE]])
+        return not (self.state[IS_BREAKDOWN] or self.state[IS_FAILURE] or self.state[IS_GENERATING][self.state[LINE]])

@@ -1,5 +1,6 @@
 from src.constants.Constants import *
 from src.mvc.controller.EndpointController import Controller
+from src.mvc.model.Counter import Counter
 from src.mvc.model.InformationTransmissionLine import InformationTransmissionLine
 from src.mvc.controller.MainController import MainController
 
@@ -14,10 +15,14 @@ def main():
         line = InformationTransmissionLine(endpoints)
         controller = Controller(line, endpoints, CHANNELS[CHANNEL_PITCH])
 
-        data_arr = []
-
-        for i in range(10):
-            controller.send_data_to_eo(data_arr, endpoints[i])
+        controller.start_session(False, False, False, False)
+        print(Counter.time, '\n')
+        Counter.time = 0
+        controller.start_session(True, False, False, False)
+        print(Counter.time, '\n')
+        Counter.time = 0
+        controller.start_session(False, True, False, False)
+        print(Counter.time, '\n')
 
     except RuntimeError as err:
         print(err)

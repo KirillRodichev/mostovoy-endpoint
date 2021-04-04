@@ -5,8 +5,8 @@ LINE_A = 'LINE_A'
 LINE_B = 'LINE_B'
 
 LINES = {
-    LINE_A: 'A',
-    LINE_B: 'B'
+    LINE_A: LINE_A,
+    LINE_B: LINE_A,
 }
 
 # channels

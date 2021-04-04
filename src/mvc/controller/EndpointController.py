@@ -1,12 +1,13 @@
 from src.constants.Constants import *
+from src.mvc.model.Counter import Counter
 from src.mvc.model.InformationTransmissionLine import InformationTransmissionLine
 from src.mvc.model.Randomizer import Randomizer
 from src.mvc.model.endpoint.Endpoint import Endpoint
 
 
 class Controller(Endpoint):
-    def __init__(self, transmission_line, endpoints, channel, transmitting_line=LINES[LINE_A]):
-        super().__init__(transmitting_line, channel)
+    def __init__(self, transmission_line, endpoints, channel, line=LINES[LINE_A]):
+        super().__init__(channel, line)
         # TODO: inheritance
         self.endpoints = endpoints
         self.transmission_line = transmission_line
@@ -58,10 +59,20 @@ class Controller(Endpoint):
             with_is_busy=True,
             with_generating=True
     ):
-        breakdown_numbers = Randomizer.generate_breakdowns() if with_breakdowns else []
-        failure_numbers = Randomizer.generate_failure() if with_failure else []
-        is_busy_numbers = Randomizer.generate_is_busy() if with_is_busy else []
-        generating_number = Randomizer.generate_generating() if with_generating else []
+        randomizer = Randomizer()
+        randomizer.generate_all()
+
+        breakdown_numbers = randomizer.breakdowns if with_breakdowns else []
+        failure_numbers = randomizer.failure if with_failure else []
+        is_busy_numbers = randomizer.is_busy if with_is_busy else []
+        generating_number = randomizer.generating if with_generating else []
+
+        # debugging
+        print('breakdown_numbers = ', breakdown_numbers)
+        print('failure_numbers = ', failure_numbers)
+        print('is_busy_numbers = ', is_busy_numbers)
+        print('generating_number = ', generating_number)
+
         endpoint_number = 0
 
         for message_number in range(0, SESSION, PORTION):
@@ -73,6 +84,8 @@ class Controller(Endpoint):
                 is_busy_numbers,
                 generating_number
             )
+            # debugging
+            # print(Counter.time)
 
     def start_portion(
             self,
@@ -89,12 +102,20 @@ class Controller(Endpoint):
             endpoint_state = self.endpoints[endpoint_number].state
             if breakdown_numbers and begin <= breakdown_numbers[0] <= end:
                 endpoint_state[IS_BREAKDOWN] = True
+                breakdown_numbers.pop(0)
             if failure_numbers and begin <= failure_numbers[0] <= end:
                 endpoint_state[IS_FAILURE] = True
+                failure_numbers.pop(0)
             if is_busy_numbers and begin <= is_busy_numbers[0] <= end:
                 endpoint_state[endpoint_state[LINE]][IS_BUSY] = True
+                is_busy_numbers.pop(0)
             if generating_number and begin <= generating_number[0] <= end:
                 endpoint_state[endpoint_state[LINE]][IS_GENERATING] = True
+                generating_number.pop(0)
+
+            # debugging
+            # if begin == 0:
+            #     print(Counter.time / 292)
 
             self.send_data_to_eo([], endpoint)
             endpoint_number = (endpoint_number + 1) % (ENDPOINTS_COUNT - 1)
