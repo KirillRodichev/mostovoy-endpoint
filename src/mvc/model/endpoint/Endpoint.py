@@ -1,3 +1,5 @@
+import copy
+
 from src.constants.Constants import *
 from src.mvc.model.Counter import Counter
 
@@ -45,7 +47,7 @@ class Endpoint:
         }
 
         # Endpoint initial state
-        self.state = INIT_STATE
+        self.state = copy.deepcopy(INIT_STATE)
         self.state[LINE] = transmitting_line
 
     # returns current endpoint state

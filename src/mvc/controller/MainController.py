@@ -8,6 +8,7 @@ class MainController:
         self.endpoints = []
 
     def generate_endpoints(self):
+        self.endpoints = []
         for i in range(ENDPOINTS_COUNT):
             if 0 <= i < 6:
                 self.endpoints.append(Endpoint(CHANNEL_PITCH))

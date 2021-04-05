@@ -89,18 +89,13 @@ PORTION = 1000
 # DATA
 # headers
 
-MESSAGES = 'Сообщений',
-BREAKDOWN = 'Сбой',
-FAILURE = 'Отказ ОУ',
-BUSY = 'Абонент занят',
-GENERATING = 'Генерация',
-TIME = 'Время',
-
 HEADERS = [
-    MESSAGES,
-    BREAKDOWN,
-    FAILURE,
-    BUSY,
-    GENERATING,
-    TIME
+    'Сообщений',
+    'Сбой',
+    'Отказ ОУ',
+    'Абонент занят',
+    'Генерация',
+    'Время'
 ]
+
+TESTS_NUMBER = 50

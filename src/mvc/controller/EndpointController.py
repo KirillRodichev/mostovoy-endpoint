@@ -18,7 +18,7 @@ def init_events():
     }
 
 
-def stat_output(data, avg, standard_deviation, numbers):
+def stat_output(data, avg, standard_deviation, numbers, time_sum):
     print()
     print(tabulate(
         data,
@@ -35,7 +35,7 @@ def stat_output(data, avg, standard_deviation, numbers):
     print("Всего событий 'Генерация': ", numbers[IS_GENERATING])
     print()
 
-    ExcelExporter.export_session_data(data, avg, standard_deviation, numbers)
+    ExcelExporter.store_session_data(data, avg, standard_deviation, numbers, time_sum)
 
 
 def insert_event_if_needed(begin, end, event_number, endpoint_state, event, event_type):
@@ -99,6 +99,8 @@ class Controller(Endpoint):
             with_is_busy=True,
             with_generating=True
     ):
+        Counter.reset()
+
         randomizer = Randomizer()
         randomizer.generate_all()
 
@@ -107,15 +109,11 @@ class Controller(Endpoint):
         is_busy_numbers = randomizer.is_busy if with_is_busy else []
         generating_number = randomizer.generating if with_generating else []
 
-        # debugging
-        print('breakdown_numbers = ', breakdown_numbers)
-        print('failure_numbers = ', failure_numbers)
-        print('is_busy_numbers = ', is_busy_numbers)
-        print('generating_number = ', generating_number)
-
+        time_sum = 0
         endpoint_number = 0
         stat_data = []
         times = []
+
         numbers = {
             IS_BREAKDOWN: 0,
             IS_FAILURE: 0,
@@ -135,9 +133,17 @@ class Controller(Endpoint):
             # debugging
             # print(Counter.time)
 
-            portion_stat_data = [PORTION, had_breakdown, had_failure, had_is_busy, had_generating, time]
+            portion_stat_data = [
+                PORTION,
+                int(had_breakdown),
+                int(had_failure),
+                int(had_is_busy),
+                int(had_generating),
+                time
+            ]
             stat_data.append(portion_stat_data)
             times.append(time)
+            time_sum += time
 
             if had_breakdown:
                 numbers[IS_BREAKDOWN] += 1
@@ -150,7 +156,7 @@ class Controller(Endpoint):
 
         avg = Stats.get_avg(times)
         standard_deviation = Stats.get_standard_deviation(times)
-        stat_output(stat_data, avg, standard_deviation, numbers)
+        stat_output(stat_data, avg, standard_deviation, numbers, time_sum)
 
     def start_portion(
             self,
@@ -174,13 +180,16 @@ class Controller(Endpoint):
             insert_event_if_needed(begin, end, is_busy_numbers, endpoint_state, event, IS_BUSY)
             insert_event_if_needed(begin, end, generating_number, endpoint_state, event, IS_GENERATING)
 
-            # debugging
-            # if begin == 0:
-            #     print(Counter.time / 292)
-
             self.send_data_to_eo([], endpoint)
             endpoint_number = (endpoint_number + 1) % (ENDPOINTS_COUNT - 1)
 
         finish = Counter.time
 
-        return endpoint_number, event[IS_BREAKDOWN], event[IS_FAILURE], event[IS_BUSY], event[IS_GENERATING], finish - start
+        return (
+            endpoint_number,
+            event[IS_BREAKDOWN],
+            event[IS_FAILURE],
+            event[IS_BUSY],
+            event[IS_GENERATING],
+            finish - start
+        )

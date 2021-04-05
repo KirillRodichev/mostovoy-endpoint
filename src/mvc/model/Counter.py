@@ -31,3 +31,7 @@ class Counter:
     @staticmethod
     def add_msg():
         Counter.messages += 1
+
+    @staticmethod
+    def reset():
+        Counter.time = 0
