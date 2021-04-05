@@ -1,6 +1,7 @@
 ENDPOINT_RESP_DELAY = 12
 END_OF_DATA_TRANS_DELAY = 20
 WORD_DELAY = 20
+IS_BUSY_DELAY = 1000
 
 
 class Counter:
@@ -22,6 +23,10 @@ class Counter:
     @staticmethod
     def add_end_of_trans_delay():
         Counter.time += END_OF_DATA_TRANS_DELAY
+
+    @staticmethod
+    def add_is_busy_delay():
+        Counter.time += IS_BUSY_DELAY
 
     @staticmethod
     def add_msg():

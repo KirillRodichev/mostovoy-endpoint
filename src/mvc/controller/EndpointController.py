@@ -1,8 +1,48 @@
+from tabulate import tabulate
+
 from src.constants.Constants import *
 from src.mvc.model.Counter import Counter
 from src.mvc.model.InformationTransmissionLine import InformationTransmissionLine
 from src.mvc.model.Randomizer import Randomizer
 from src.mvc.model.endpoint.Endpoint import Endpoint
+from src.utils.ExcelExporter import ExcelExporter
+from src.utils.Stats import Stats
+
+
+def init_events():
+    return {
+        IS_BREAKDOWN: False,
+        IS_FAILURE: False,
+        IS_BUSY: False,
+        IS_GENERATING: False,
+    }
+
+
+def stat_output(data, avg, standard_deviation, numbers):
+    print()
+    print(tabulate(
+        data,
+        headers=HEADERS,
+        tablefmt='orgtbl'
+    ))
+    print()
+    print('Мат ожидание = ', avg)
+    print('Среднеквадратическое  = ', standard_deviation)
+    print()
+    print("Всего событий 'Сбой': ", numbers[IS_BREAKDOWN])
+    print("Всего событий 'Отказ ОУ': ", numbers[IS_FAILURE])
+    print("Всего событий 'Абонент занят': ", numbers[IS_BUSY])
+    print("Всего событий 'Генерация': ", numbers[IS_GENERATING])
+    print()
+
+    ExcelExporter.export_session_data(data, avg, standard_deviation, numbers)
+
+
+def insert_event_if_needed(begin, end, event_number, endpoint_state, event, event_type):
+    if event_number and begin <= event_number[0] <= end:
+        endpoint_state[event_type][endpoint_state[LINE]] = True
+        event_number.pop(0)
+        event[event_type] = True
 
 
 class Controller(Endpoint):
@@ -74,9 +114,17 @@ class Controller(Endpoint):
         print('generating_number = ', generating_number)
 
         endpoint_number = 0
+        stat_data = []
+        times = []
+        numbers = {
+            IS_BREAKDOWN: 0,
+            IS_FAILURE: 0,
+            IS_BUSY: 0,
+            IS_GENERATING: 0,
+        }
 
         for message_number in range(0, SESSION, PORTION):
-            endpoint_number = self.start_portion(
+            endpoint_number, had_breakdown, had_failure, had_is_busy, had_generating, time = self.start_portion(
                 message_number,
                 endpoint_number,
                 breakdown_numbers,
@@ -86,6 +134,23 @@ class Controller(Endpoint):
             )
             # debugging
             # print(Counter.time)
+
+            portion_stat_data = [PORTION, had_breakdown, had_failure, had_is_busy, had_generating, time]
+            stat_data.append(portion_stat_data)
+            times.append(time)
+
+            if had_breakdown:
+                numbers[IS_BREAKDOWN] += 1
+            if had_failure:
+                numbers[IS_FAILURE] += 1
+            if had_is_busy:
+                numbers[IS_BUSY] += 1
+            if had_generating:
+                numbers[IS_GENERATING] += 1
+
+        avg = Stats.get_avg(times)
+        standard_deviation = Stats.get_standard_deviation(times)
+        stat_output(stat_data, avg, standard_deviation, numbers)
 
     def start_portion(
             self,
@@ -97,21 +162,17 @@ class Controller(Endpoint):
             generating_number
     ):
         end = begin + PORTION
+        event = init_events()
+        start = Counter.time
+
         for i in range(begin, end):
             endpoint = self.endpoints[endpoint_number]
             endpoint_state = self.endpoints[endpoint_number].state
-            if breakdown_numbers and begin <= breakdown_numbers[0] <= end:
-                endpoint_state[IS_BREAKDOWN] = True
-                breakdown_numbers.pop(0)
-            if failure_numbers and begin <= failure_numbers[0] <= end:
-                endpoint_state[IS_FAILURE] = True
-                failure_numbers.pop(0)
-            if is_busy_numbers and begin <= is_busy_numbers[0] <= end:
-                endpoint_state[endpoint_state[LINE]][IS_BUSY] = True
-                is_busy_numbers.pop(0)
-            if generating_number and begin <= generating_number[0] <= end:
-                endpoint_state[endpoint_state[LINE]][IS_GENERATING] = True
-                generating_number.pop(0)
+
+            insert_event_if_needed(begin, end, breakdown_numbers, endpoint_state, event, IS_BREAKDOWN)
+            insert_event_if_needed(begin, end, failure_numbers, endpoint_state, event, IS_FAILURE)
+            insert_event_if_needed(begin, end, is_busy_numbers, endpoint_state, event, IS_BUSY)
+            insert_event_if_needed(begin, end, generating_number, endpoint_state, event, IS_GENERATING)
 
             # debugging
             # if begin == 0:
@@ -120,4 +181,6 @@ class Controller(Endpoint):
             self.send_data_to_eo([], endpoint)
             endpoint_number = (endpoint_number + 1) % (ENDPOINTS_COUNT - 1)
 
-        return endpoint_number
+        finish = Counter.time
+
+        return endpoint_number, event[IS_BREAKDOWN], event[IS_FAILURE], event[IS_BUSY], event[IS_GENERATING], finish - start

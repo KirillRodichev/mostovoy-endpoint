@@ -19,8 +19,14 @@ INIT_STATE = {
         LINE_A: False,
         LINE_B: False,
     },
-    IS_BREAKDOWN: False,
-    IS_FAILURE: False,
+    IS_BREAKDOWN: {
+        LINE_A: False,
+        LINE_B: False,
+    },
+    IS_FAILURE: {
+        LINE_A: False,
+        LINE_B: False,
+    },
 }
 
 
@@ -49,20 +55,31 @@ class Endpoint:
             Counter.add_word_delay()  # + 20 mcs - response word
             return self.state
         else:
-            if self.state[IS_BREAKDOWN] is True:
-                self.state[IS_BREAKDOWN] = False
+            if self.state[IS_BREAKDOWN][self.state[LINE]] is True:
+                self.state[IS_BREAKDOWN][self.state[LINE]] = False
+            if self.state[IS_BUSY][self.state[LINE]] is True:
+                self.state[IS_BUSY][self.state[LINE]] = False
+                Counter.add_word_delay()
+                Counter.add_is_busy_delay()
             return None
 
     def accept_data(self, data_array):
-        if self.is_functioning():
-            Counter.add_word_delay()  # + 20 mcs - accept data command word
-            Counter.add_data_trans_delay()  # + 240 mcs - 12 data messages
-            # TODO: process data array if needed
+        Counter.add_word_delay()  # + 20 mcs - accept data command word
+        Counter.add_data_trans_delay()  # + 240 mcs - 12 data messages
+        # TODO: process data array if needed
 
     def block(self):
         if self.is_functioning():
             Counter.add_word_delay()  # + 20 mcs - command word
             self.state[IS_FROZEN][self.state[LINE]] = True
+            return self.get_response()
+        else:
+            return None
+
+    def block_through(self):
+        opposite_line = LINE_A if self.state[LINE] == LINE_B else LINE_B
+        if self.is_functioning(opposite_line):
+            self.state[IS_FROZEN][opposite_line] = False
             return self.get_response()
         else:
             return None
@@ -81,5 +98,12 @@ class Endpoint:
         else:
             self.state[LINE] = LINE_A
 
-    def is_functioning(self):
-        return not (self.state[IS_BREAKDOWN] or self.state[IS_FAILURE] or self.state[IS_GENERATING][self.state[LINE]])
+    def is_functioning(self, line=''):
+        if not line:
+            line = self.state[LINE]
+        return not (
+                self.state[IS_BREAKDOWN][line] or
+                self.state[IS_FAILURE][line] or
+                self.state[IS_GENERATING][line] or
+                self.state[IS_BUSY][line]
+        )

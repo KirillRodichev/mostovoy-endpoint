@@ -85,3 +85,22 @@ NO_RESPONSE = 'Error: no response from endpoint'
 
 SESSION = 20000
 PORTION = 1000
+
+# DATA
+# headers
+
+MESSAGES = 'Сообщений',
+BREAKDOWN = 'Сбой',
+FAILURE = 'Отказ ОУ',
+BUSY = 'Абонент занят',
+GENERATING = 'Генерация',
+TIME = 'Время',
+
+HEADERS = [
+    MESSAGES,
+    BREAKDOWN,
+    FAILURE,
+    BUSY,
+    GENERATING,
+    TIME
+]
