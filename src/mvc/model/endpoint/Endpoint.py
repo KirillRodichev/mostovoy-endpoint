@@ -81,7 +81,8 @@ class Endpoint:
     def block_through(self):
         opposite_line = LINE_A if self.state[LINE] == LINE_B else LINE_B
         if self.is_functioning(opposite_line):
-            self.state[IS_FROZEN][opposite_line] = False
+            Counter.add_word_delay()  # + 20 mcs - command word
+            self.state[IS_FROZEN][opposite_line] = True
             return self.get_response()
         else:
             return None
@@ -90,6 +91,22 @@ class Endpoint:
         Counter.add_word_delay()  # + 20 mcs - command word
         if self.is_functioning():
             self.state[IS_FROZEN][self.state[LINE]] = False
+            return self.get_response()
+        else:
+            return None
+
+    def release_through(self):
+        opposite_line = LINE_A if self.state[LINE] == LINE_B else LINE_B
+        if self.is_functioning(opposite_line):
+            Counter.add_word_delay()  # + 20 mcs - command word
+            self.state[IS_FROZEN][opposite_line] = False
+            return self.get_response()
+        else:
+            return None
+
+    def response(self):
+        Counter.add_word_delay()  # + 20 mcs - command word
+        if self.is_functioning():
             return self.get_response()
         else:
             return None

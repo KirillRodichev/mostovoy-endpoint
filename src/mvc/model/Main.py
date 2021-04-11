@@ -7,8 +7,6 @@ from src.utils.ExcelExporter import ExcelExporter
 
 def main():
     try:
-        print('Hello MOSTOVOY!')
-
         main_controller = MainController()
 
         for i in range(TESTS_NUMBER):
@@ -19,7 +17,7 @@ def main():
                 with_breakdowns=True,
                 with_failure=True,
                 with_is_busy=True,
-                with_generating=False
+                with_generating=True
             )
 
         ExcelExporter.export_stored_data()

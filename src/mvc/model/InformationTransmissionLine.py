@@ -15,6 +15,10 @@ class InformationTransmissionLine:
     def __init__(self, endpoints):
         self.endpoints = endpoints
         self.isBusy = False
+        self.hasGeneration = False
+
+    def set_has_generation(self, value):
+        self.hasGeneration = value
 
     def set_busy_line(self, value, endpoint):
         self.isBusy = value
@@ -42,15 +46,25 @@ class InformationTransmissionLine:
     # command (t1)=> response (t2)=>
     def transfer_format4(self, command, endpoint):
         Counter.add_msg()
+        self.set_busy_line(True, endpoint)
 
         if command == COMMANDS[GET_ANSWER]:
-            response = endpoint.get_response()
+            if not self.hasGeneration:
+                response = endpoint.response()
+            else:
+                Counter.add_endpoint_resp_delay()  # + 12 mcs
+                Counter.add_word_delay()  # + 20 mcs - command word
+                response = None
         elif command == COMMANDS[BLOCK]:
             response = endpoint.block()
         elif command == COMMANDS[RELEASE]:
             response = endpoint.release()
         elif command == COMMANDS[SWAP_LINE]:
             response = endpoint.swap_line()
+        elif command == COMMANDS[BLOCK_THROUGH]:
+            response = endpoint.block_through()
+        elif command == COMMANDS[RELEASE_THROUGH]:
+            response = endpoint.release_through()
         else:
             raise RuntimeError(INCOMPATIBLE_COMMAND_TYPE)
 
