@@ -2,11 +2,12 @@ from src.constants.Constants import *
 from src.mvc.model.Counter import Counter
 
 
-def set_resp(success=False, data=None, error=''):
+def set_resp(success=False, data=None, error='', time=0):
     return {
         SUCCESS: success,
         DATA: data,
         ERROR: error,
+        TIME: time,
     }
 
 
@@ -30,6 +31,7 @@ class InformationTransmissionLine:
         Counter.add_msg()
         self.set_busy_line(True, endpoint)
 
+        start = Counter.time
         if command == COMMANDS[SEND_DATA]:
             endpoint.accept_data(data_array)
             response = endpoint.get_response()
@@ -39,15 +41,16 @@ class InformationTransmissionLine:
 
         self.set_busy_line(False, endpoint)
         if response is not None:
-            return set_resp(True, response, '')
+            return set_resp(True, response, '', Counter.time - start)
         else:
-            return set_resp(False, response, NO_RESPONSE)
+            return set_resp(False, response, NO_RESPONSE, Counter.time - start)
 
     # command (t1)=> response (t2)=>
     def transfer_format4(self, command, endpoint):
         Counter.add_msg()
         self.set_busy_line(True, endpoint)
 
+        start = Counter.time
         if command == COMMANDS[GET_ANSWER]:
             if not self.hasGeneration:
                 response = endpoint.response()
@@ -70,6 +73,6 @@ class InformationTransmissionLine:
 
         self.set_busy_line(False, endpoint)
         if response is not None:
-            return set_resp(True, response, '')
+            return set_resp(True, response, '', Counter.time - start)
         else:
-            return set_resp(False, response, NO_RESPONSE)
+            return set_resp(False, response, NO_RESPONSE, Counter.time - start)

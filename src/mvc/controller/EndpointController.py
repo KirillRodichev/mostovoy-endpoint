@@ -1,4 +1,5 @@
 from tabulate import tabulate
+import numpy as np
 
 from src.constants.Constants import *
 from src.mvc.model.Counter import Counter
@@ -69,54 +70,67 @@ class Controller(Endpoint):
         return response  # for debugging
 
     def test_mko(self):
+        message_times = []
         has_generating_endpoint = False
         for endpoint in self.endpoints:
             response = self.transmission_line.transfer_format4(COMMANDS[GET_ANSWER], endpoint)
+            message_times.append(response[TIME])
             if not response[SUCCESS] and response[ERROR] == NO_RESPONSE:
                 response = self.transmission_line.transfer_format4(COMMANDS[GET_ANSWER], endpoint)
             if not response[SUCCESS] and response[ERROR] == NO_RESPONSE:
                 has_generating_endpoint = True
+            message_times.append(response[TIME])
 
         if has_generating_endpoint:
             # block all endpoints
             for endpoint in self.endpoints:
-                self.transmission_line.transfer_format4(COMMANDS[SWAP_LINE], endpoint)  # to B
-                self.transmission_line.transfer_format4(COMMANDS[BLOCK_THROUGH], endpoint)  # block on A
+                response = self.transmission_line.transfer_format4(COMMANDS[SWAP_LINE], endpoint)  # to B
+                message_times.append(response[TIME])
+                response = self.transmission_line.transfer_format4(COMMANDS[BLOCK_THROUGH], endpoint)  # block on A
+                message_times.append(response[TIME])
                 self.transmission_line.set_has_generation(False)
 
             # release endpoints one by one
             for endpoint in self.endpoints:
                 is_generating_blocked = False
-                self.transmission_line.transfer_format4(COMMANDS[RELEASE_THROUGH], endpoint)  # release on A
-                self.transmission_line.transfer_format4(COMMANDS[SWAP_LINE], endpoint)  # to A
+                response = self.transmission_line.transfer_format4(COMMANDS[RELEASE_THROUGH], endpoint)  # release on A
+                message_times.append(response[TIME])
+                response = self.transmission_line.transfer_format4(COMMANDS[SWAP_LINE], endpoint)  # to A
+                message_times.append(response[TIME])
                 # continue asking if generating is not found
                 if not is_generating_blocked:
                     response = self.transmission_line.transfer_format4(COMMANDS[GET_ANSWER], endpoint)
+                    message_times.append(response[TIME])
                     # if no response after endpoint release then it's been generating
                     if not response[SUCCESS] and response[ERROR] == NO_RESPONSE:
-                        self.transmission_line.transfer_format4(COMMANDS[SWAP_LINE], endpoint)  # to B
-                        self.transmission_line.transfer_format4(COMMANDS[BLOCK_THROUGH], endpoint)  # block on A
+                        response = self.transmission_line.transfer_format4(COMMANDS[SWAP_LINE], endpoint)  # to B
+                        message_times.append(response[TIME])
+                        response = self.transmission_line.transfer_format4(COMMANDS[BLOCK_THROUGH], endpoint)  # block on A
+                        message_times.append(response[TIME])
                         endpoint.state[IS_FAILURE][LINE_A] = True  # imitate block as if it's a failure
-                        self.transmission_line.transfer_format4(COMMANDS[SWAP_LINE], endpoint)  # back to A
+                        response = self.transmission_line.transfer_format4(COMMANDS[SWAP_LINE], endpoint)  # back to A
+                        message_times.append(response[TIME])
                         is_generating_blocked = True
                         endpoint.state[IS_GENERATING][LINE_A] = False  # return to initial setup
 
+        return message_times
+
     def start_session(
             self,
-            with_breakdowns=True,
-            with_failure=True,
-            with_is_busy=True,
-            with_generating=True
+            with_breakdowns,
+            with_failure,
+            with_is_busy,
+            with_generating
     ):
         Counter.reset()
 
         randomizer = Randomizer()
         randomizer.generate_all()
 
-        breakdown_numbers = randomizer.breakdowns
-        failure_numbers = randomizer.failure
-        is_busy_numbers = randomizer.is_busy
-        generating_endpoint_number = randomizer.generating
+        breakdown_numbers = randomizer.breakdowns if with_breakdowns else []
+        failure_numbers = randomizer.failure if with_failure else []
+        is_busy_numbers = randomizer.is_busy if with_is_busy else []
+        generating_endpoint_number = randomizer.generating if with_generating else -1
 
         time_sum = 0
         stat_data = []
@@ -131,7 +145,7 @@ class Controller(Endpoint):
 
         for message_number in range(0, SESSION, PORTION):
             # print('************************portion************************')
-            had_breakdown, had_failure, had_is_busy, had_generating, time = self.start_portion(
+            had_breakdown, had_failure, had_is_busy, had_generating, overall_time, message_times = self.start_portion(
                 message_number,
                 breakdown_numbers,
                 failure_numbers,
@@ -141,17 +155,23 @@ class Controller(Endpoint):
             # debugging
             # print(Counter.time)
 
+            generating_stat_data = int(had_generating) \
+                if not had_generating \
+                else str(generating_endpoint_number + 1) + '-й ОУ'
+
             portion_stat_data = [
                 PORTION,
                 int(had_breakdown),
                 int(had_failure),
                 int(had_is_busy),
-                int(had_generating),
-                time
+                generating_stat_data,
+                round(overall_time / 1000, 3),
+                round(Stats.get_avg(message_times) / 1000, 3),
+                round(Stats.get_standard_deviation(message_times) / 1000, 3),
             ]
             stat_data.append(portion_stat_data)
-            times.append(time)
-            time_sum += time
+            times.append(message_times)
+            time_sum += overall_time
 
             if had_breakdown:
                 numbers[IS_BREAKDOWN] += 1
@@ -162,8 +182,9 @@ class Controller(Endpoint):
             if had_generating:
                 numbers[IS_GENERATING] += 1
 
-        avg = Stats.get_avg(times)
-        standard_deviation = Stats.get_standard_deviation(times)
+        avg = round(Stats.get_avg(times), 3)
+        standard_deviation = round(Stats.get_standard_deviation(times), 3)
+        time_sum = round(time_sum / 1000, 3)
         stat_output(stat_data, avg, standard_deviation, numbers, time_sum)
 
     def start_portion(
@@ -178,13 +199,15 @@ class Controller(Endpoint):
         end = begin + PORTION
         event = init_events()
         start = Counter.time
+        message_times = []
 
         if generating_endpoint_number != -1 and begin == 0:
             event[IS_GENERATING] = True
             self.transmission_line.set_has_generation(True)
             endpoint_state = self.endpoints[generating_endpoint_number].state
             endpoint_state[IS_GENERATING][LINE_A] = True
-            self.test_mko()
+            mko_msg_times = self.test_mko()  # just for debugging, doesn't included to stats
+            # np.append(message_times, mko_msg_times)
 
         for i in range(begin, end):
             # trans_data_start = Counter.time
@@ -193,13 +216,16 @@ class Controller(Endpoint):
             self.insert_event_if_needed(failure_numbers, endpoint_number, event, IS_FAILURE, i, begin, end)
             self.insert_event_if_needed(is_busy_numbers, endpoint_number, event, IS_BUSY, i)
 
+            message_start = Counter.time
             self.send_data_to_eo([], self.endpoints[endpoint_number])
+            message_times.append(Counter.time - message_start)
             # print(endpoint_number)
             # if Counter.time - trans_data_start == 836:
             #     print(i, endpoint_number, Counter.time - trans_data_start)
             endpoint_number = (endpoint_number + 1) % ENDPOINTS_COUNT
 
         finish = Counter.time
+        overall_delay = finish - start
 
         # debugging
         # self.print_endpoint_states(begin // PORTION)
@@ -209,7 +235,8 @@ class Controller(Endpoint):
             event[IS_FAILURE],
             event[IS_BUSY],
             event[IS_GENERATING],
-            finish - start
+            overall_delay,
+            message_times,
         )
 
     def insert_event_if_needed(self, event_numbers, endpoint_number, event, event_type, iteration, begin=0, end=0):
